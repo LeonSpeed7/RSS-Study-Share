@@ -97,7 +97,7 @@ const Upload = () => {
         description: "Your notes have been uploaded",
       });
       
-      navigate("/browse");
+      navigate("/upload-success");
     } catch (error: any) {
       toast({
         title: "Upload failed",
