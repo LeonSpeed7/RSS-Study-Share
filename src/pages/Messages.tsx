@@ -47,8 +47,12 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState("");
   const [newGlobalMessage, setNewGlobalMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
-  const [activeTab, setActiveTab] = useState("direct");
+  const [activeTab, setActiveTab] = useState("global");
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([]);
 
   useEffect(() => {
     getCurrentUser();
@@ -131,7 +135,20 @@ const Messages = () => {
 
   const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUserId(user?.id || null);
+    if (user) {
+      setCurrentUserId(user.id);
+      
+      // Fetch current user's username
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
+      
+      if (profile) {
+        setCurrentUsername(profile.username);
+      }
+    }
   };
 
   const fetchAllUsers = async () => {
@@ -228,6 +245,69 @@ const Messages = () => {
     }
   };
 
+  const handleGlobalMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewGlobalMessage(value);
+
+    // Check for @ mentions
+    const lastAtIndex = value.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const textAfterAt = value.slice(lastAtIndex + 1);
+      
+      // Only show dropdown if @ is at start or after a space
+      const charBeforeAt = lastAtIndex > 0 ? value[lastAtIndex - 1] : ' ';
+      if (charBeforeAt === ' ' || lastAtIndex === 0) {
+        // Check if there's a space after @, if so hide dropdown
+        if (!textAfterAt.includes(' ')) {
+          setMentionSearch(textAfterAt.toLowerCase());
+          const filtered = allUsers.filter(user =>
+            user.username.toLowerCase().startsWith(textAfterAt.toLowerCase())
+          ).slice(0, 5);
+          setMentionSuggestions(filtered);
+          setShowMentionDropdown(filtered.length > 0);
+        } else {
+          setShowMentionDropdown(false);
+        }
+      } else {
+        setShowMentionDropdown(false);
+      }
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const insertMention = (username: string) => {
+    const lastAtIndex = newGlobalMessage.lastIndexOf('@');
+    const beforeMention = newGlobalMessage.slice(0, lastAtIndex);
+    const afterMention = newGlobalMessage.slice(lastAtIndex).split(' ').slice(1).join(' ');
+    
+    setNewGlobalMessage(`${beforeMention}@${username} ${afterMention}`);
+    setShowMentionDropdown(false);
+  };
+
+  const renderMessageWithMentions = (text: string) => {
+    const mentionRegex = /@(\w+)/g;
+    const parts = text.split(mentionRegex);
+    
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        // This is a username (captured group)
+        const isCurrentUser = part === currentUsername;
+        return (
+          <span
+            key={index}
+            className={`font-semibold ${
+              isCurrentUser ? 'text-primary' : 'text-blue-500 dark:text-blue-400'
+            }`}
+          >
+            @{part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   const handleSendGlobalMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGlobalMessage.trim() || !currentUserId) return;
@@ -242,6 +322,7 @@ const Messages = () => {
       if (error) throw error;
 
       setNewGlobalMessage("");
+      setShowMentionDropdown(false);
     } catch (error: any) {
       toast({
         title: "Failed to send message",
@@ -317,7 +398,9 @@ const Messages = () => {
                                   : 'bg-muted rounded-bl-sm'
                               }`}
                             >
-                              <p className="text-sm break-words">{msg.message}</p>
+                              <p className="text-sm break-words">
+                                {renderMessageWithMentions(msg.message)}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -326,23 +409,50 @@ const Messages = () => {
                   </div>
                 )}
               </ScrollArea>
-              <form onSubmit={handleSendGlobalMessage} className="flex gap-2 pt-2 border-t">
-                <Input
-                  placeholder="Type a message to everyone..."
-                  value={newGlobalMessage}
-                  onChange={(e) => setNewGlobalMessage(e.target.value)}
-                  disabled={isSending || !currentUserId}
-                  className="flex-1"
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  disabled={isSending || !newGlobalMessage.trim() || !currentUserId}
-                  className="flex-shrink-0"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
+              <div className="relative">
+                {showMentionDropdown && (
+                  <Card className="absolute bottom-full left-0 right-0 mb-2 max-h-48 overflow-auto">
+                    <CardContent className="p-2">
+                      {mentionSuggestions.map((user) => (
+                        <button
+                          key={user.id}
+                          onClick={() => insertMention(user.username)}
+                          className="w-full text-left px-3 py-2 rounded hover:bg-accent transition-colors flex items-center gap-2"
+                        >
+                          <Avatar className="w-6 h-6">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {user.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{user.username}</p>
+                            {user.full_name && (
+                              <p className="text-xs text-muted-foreground">{user.full_name}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+                <form onSubmit={handleSendGlobalMessage} className="flex gap-2 pt-2 border-t">
+                  <Input
+                    placeholder="Type a message (use @ to mention users)..."
+                    value={newGlobalMessage}
+                    onChange={handleGlobalMessageChange}
+                    disabled={isSending || !currentUserId}
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    disabled={isSending || !newGlobalMessage.trim() || !currentUserId}
+                    className="flex-shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </form>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
