@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { User } from "@supabase/supabase-js";
-import { BookOpen, Upload, User as UserIcon, GraduationCap, LogOut, MessageSquare, Sparkles } from "lucide-react";
+import { Upload, User as UserIcon, GraduationCap, LogOut, MessageSquare, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 interface LayoutProps {
@@ -55,14 +55,6 @@ const Layout = ({ children }: LayoutProps) => {
             
             <div className="flex items-center gap-4">
               <NavLink
-                to="/browse"
-                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
-                activeClassName="bg-accent text-accent-foreground"
-              >
-                <BookOpen className="w-4 h-4" />
-                Browse
-              </NavLink>
-              <NavLink
                 to="/ai-recommendations"
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
                 activeClassName="bg-accent text-accent-foreground"
@@ -87,12 +79,12 @@ const Layout = ({ children }: LayoutProps) => {
                 Messages
               </NavLink>
               <NavLink
-                to="/profile"
+                to="/"
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
                 activeClassName="bg-accent text-accent-foreground"
               >
                 <UserIcon className="w-4 h-4" />
-                Profile
+                My Notes
               </NavLink>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4" />
