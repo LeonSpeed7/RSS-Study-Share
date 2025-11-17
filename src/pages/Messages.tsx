@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Search, Users, MessageCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Send, Search, Users, MessageCircle, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
@@ -25,6 +26,16 @@ interface Message {
   read: boolean;
 }
 
+interface GlobalMessage {
+  id: string;
+  message: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    username: string;
+  };
+}
+
 const Messages = () => {
   const { toast } = useToast();
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -32,13 +43,52 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [globalMessages, setGlobalMessages] = useState<GlobalMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [newGlobalMessage, setNewGlobalMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [activeTab, setActiveTab] = useState("direct");
 
   useEffect(() => {
     getCurrentUser();
     fetchAllUsers();
+    fetchGlobalMessages();
+  }, []);
+
+  useEffect(() => {
+    // Subscribe to global chat messages
+    const channel = supabase
+      .channel('global-chat')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'global_chat_messages'
+        },
+        async (payload) => {
+          const { data: newMsg } = await supabase
+            .from("global_chat_messages")
+            .select(`
+              *,
+              profiles (
+                username
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newMsg) {
+            setGlobalMessages(prev => [...prev, newMsg]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -103,6 +153,26 @@ const Messages = () => {
     setFilteredUsers(data || []);
   };
 
+  const fetchGlobalMessages = async () => {
+    const { data, error } = await supabase
+      .from("global_chat_messages")
+      .select(`
+        *,
+        profiles (
+          username
+        )
+      `)
+      .order("created_at", { ascending: true })
+      .limit(100);
+
+    if (error) {
+      console.error("Error fetching global messages:", error);
+      return;
+    }
+
+    setGlobalMessages(data || []);
+  };
+
   const fetchMessages = async (partnerId: string) => {
     if (!currentUserId) return;
 
@@ -158,11 +228,127 @@ const Messages = () => {
     }
   };
 
+  const handleSendGlobalMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGlobalMessage.trim() || !currentUserId) return;
+
+    setIsSending(true);
+    try {
+      const { error } = await supabase.from("global_chat_messages").insert({
+        user_id: currentUserId,
+        message: newGlobalMessage.trim(),
+      });
+
+      if (error) throw error;
+
+      setNewGlobalMessage("");
+    } catch (error: any) {
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const selectedUserData = allUsers.find(u => u.id === selectedUser);
 
   return (
     <Layout>
-      <div className="grid gap-6 md:grid-cols-3 h-[calc(100vh-12rem)]">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
+          <TabsTrigger value="global" className="flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            Global Chat
+          </TabsTrigger>
+          <TabsTrigger value="direct" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Direct Messages
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="global" className="mt-0">
+          <Card className="h-[calc(100vh-16rem)] flex flex-col">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-primary" />
+                <CardTitle>Global Chat</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col p-4">
+              <ScrollArea className="flex-1 pr-4 mb-4">
+                {globalMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <Globe className="w-12 h-12 text-muted-foreground/50 mb-3" />
+                    <p className="text-muted-foreground text-sm font-medium">No messages yet</p>
+                    <p className="text-muted-foreground/70 text-xs">Be the first to say hello!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {globalMessages.map((msg) => {
+                      const isCurrentUser = msg.user_id === currentUserId;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+                        >
+                          {!isCurrentUser && (
+                            <Avatar className="w-8 h-8 flex-shrink-0">
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                {msg.profiles?.username?.charAt(0).toUpperCase() || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div className={`flex-1 max-w-[80%] ${isCurrentUser ? 'flex flex-col items-end' : ''}`}>
+                            <div className={`flex items-baseline gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                              <span className="text-xs font-medium text-foreground">
+                                {isCurrentUser ? 'You' : msg.profiles?.username}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(msg.created_at), "h:mm a")}
+                              </span>
+                            </div>
+                            <div
+                              className={`rounded-2xl px-4 py-2 ${
+                                isCurrentUser
+                                  ? 'bg-primary text-primary-foreground rounded-br-sm'
+                                  : 'bg-muted rounded-bl-sm'
+                              }`}
+                            >
+                              <p className="text-sm break-words">{msg.message}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+              <form onSubmit={handleSendGlobalMessage} className="flex gap-2 pt-2 border-t">
+                <Input
+                  placeholder="Type a message to everyone..."
+                  value={newGlobalMessage}
+                  onChange={(e) => setNewGlobalMessage(e.target.value)}
+                  disabled={isSending || !currentUserId}
+                  className="flex-1"
+                />
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  disabled={isSending || !newGlobalMessage.trim() || !currentUserId}
+                  className="flex-shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="direct" className="mt-0">
+          <div className="grid gap-6 md:grid-cols-3 h-[calc(100vh-16rem)]">
         <Card className="md:col-span-1">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
@@ -313,7 +499,9 @@ const Messages = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </Layout>
   );
 };
