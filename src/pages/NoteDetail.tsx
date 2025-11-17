@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Download, Calendar, User, Send } from "lucide-react";
+import { Download, Calendar, User, Send, Star, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
@@ -19,8 +19,13 @@ interface Note {
   subject: string;
   file_url: string;
   file_name: string;
+  note_type: string;
+  rating_sum: number;
+  rating_count: number;
+  user_id: string;
   created_at: string;
   profiles: {
+    id: string;
     username: string;
     full_name: string;
   };
@@ -38,11 +43,13 @@ interface ChatMessage {
 
 const NoteDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [note, setNote] = useState<Note | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRating, setUserRating] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
@@ -50,6 +57,7 @@ const NoteDetail = () => {
     fetchNote();
     fetchMessages();
     getCurrentUser();
+    fetchUserRating();
   }, [id]);
 
   const getCurrentUser = async () => {
@@ -64,6 +72,7 @@ const NoteDetail = () => {
         .select(`
           *,
           profiles (
+            id,
             username,
             full_name
           )
@@ -132,10 +141,66 @@ const NoteDetail = () => {
     }
   };
 
+  const fetchUserRating = async () => {
+    if (!currentUserId) return;
+    
+    const { data } = await supabase
+      .from("note_ratings")
+      .select("rating")
+      .eq("note_id", id)
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+    
+    if (data) {
+      setUserRating(data.rating);
+    }
+  };
+
+  const handleRating = async (rating: number) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from("note_ratings")
+        .upsert({
+          note_id: id,
+          user_id: currentUserId,
+          rating,
+        });
+
+      if (error) throw error;
+
+      setUserRating(rating);
+      fetchNote();
+      
+      toast({
+        title: "Rating submitted",
+        description: "Thank you for your feedback!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to submit rating",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDownload = () => {
     if (note?.file_url) {
       window.open(note.file_url, "_blank");
     }
+  };
+
+  const startPrivateChat = () => {
+    if (note?.profiles?.id) {
+      navigate(`/messages?user=${note.profiles.id}`);
+    }
+  };
+
+  const getAverageRating = () => {
+    if (!note || note.rating_count === 0) return 0;
+    return (note.rating_sum / note.rating_count).toFixed(1);
   };
 
   if (isLoading) {
@@ -174,16 +239,64 @@ const NoteDetail = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>
-                    Uploaded by <span className="font-medium">{note.profiles?.username}</span>
-                  </span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span>
+                      Uploaded by{" "}
+                      <button
+                        onClick={startPrivateChat}
+                        className="font-medium hover:underline text-primary"
+                      >
+                        {note.profiles?.username}
+                      </button>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={startPrivateChat}
+                      className="h-7"
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      Message
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    {format(new Date(note.created_at), "MMM d, yyyy")}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  {format(new Date(note.created_at), "MMM d, yyyy")}
+
+                {note.rating_count > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                    <span className="font-medium">{getAverageRating()}</span>
+                    <span className="text-sm text-muted-foreground">
+                      ({note.rating_count} {note.rating_count === 1 ? "rating" : "ratings"})
+                    </span>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Rate this note:</p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => handleRating(rating)}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`w-6 h-6 ${
+                            rating <= userRating
+                              ? "fill-yellow-500 text-yellow-500"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <Button onClick={handleDownload} className="w-full">
