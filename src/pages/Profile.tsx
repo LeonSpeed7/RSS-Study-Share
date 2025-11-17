@@ -230,7 +230,7 @@ const Profile = () => {
                 <Card
                   key={note.id}
                   className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-1"
-                  onClick={() => window.open(note.file_url, '_blank')}
+                  onClick={() => navigate(`/note/${note.id}`)}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
