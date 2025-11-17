@@ -1,73 +1,39 @@
-# Welcome to your Lovable project
 
-## Project info
+## Inspiration
+Every student has faced the night-before-test panic, staring at incomplete notes and wishing for access to organized explanations. We realized that schools have vast academic knowledge but no central, safe place to share notes, summaries, and study guides. Our idea stemmed from one question: What if technology and AI could create a collaborative studying community?
 
-**URL**: https://lovable.dev/projects/e4c53901-d9a3-4712-8a9c-574d5c653278
+## What it does
+StudyShare is a secure note-sharing platform helping students learn smarter and support each other. Key features include:
+Note uploads with filters for subject, visibility, and brief descriptions, helping students find exactly what they need.
+Private and public chats to communicate one-on-one or join broader school communities.
+Detailed user profiles showcasing bios and note contributions.
+AI-powered recommendations that analyze content and ratings to suggest the top 3 most relevant notes for a lesson.
+School affiliation for prioritizing notes and enabling connections within the same school.
+Other features
+dark/light mode
+profile editing
+search filters
+multiple note types (lecture, lab, etc.).
+## How we built it
+We iterated on several design ideas before building the platform using the AI-powered Lovable development platform and integrating the Gemini 2.5 API into our database. These tools allowed us to create a scalable, dynamic product that would have been difficult with traditional development alone.
 
-## How can I edit this code?
+## Challenges we ran into
+One problem we ran into was allowing people on our website to contact and message each other. We solved this by changing the way users and messages were stored. We also had a problem with allowing all students on the website to access someone’s file uploads into the website. We fixed this by creating a ‘private’ and ‘public’ setting for each file with only public files being accessible to other users.
 
-There are several ways of editing your application.
 
-**Use Lovable**
+## Accomplishments that we're proud of
+We are proud of our prompt engineering with Lovable, allowing us to incorporate multiple features into a usable platform. Removing the browse section and replacing it with an AI notes recommender solved major storage and accessibility issues, a breakthrough for our workflow. 
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e4c53901-d9a3-4712-8a9c-574d5c653278) and start prompting.
+## What we learned
+This hackathon taught us the value of generating detailed ideas and collaborating as a team. Clear planning allowed us to create high-quality prompts for Lovable, maximizing the effectiveness of AI tools in development. 
 
-Changes made via Lovable will be committed automatically to this repo.
+## What's next for StudyShare
+We envision StudyShare as an open-source notes platform like GitHub or NextDoor where all students can contribute to each other’s academic success and contact each other for resources and help. Future plans include a used textbook exchange, so peers can donate or sell books at a discounted price. Finally, we want to integrate tutoring and academic services, making our platform the central hub for student learning and connection.
 
-**Use your preferred IDE**
+## Coming soon (Bonus)
+We want to add the following features in the future:
+An about us page explaining what our website is used for
+Contact us/help section for users having trouble navigating our website
+Send feedback at the bottom on what features/improvements we could make
+A tooltip for when a user hovers over a section to provide basic details about it
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/e4c53901-d9a3-4712-8a9c-574d5c653278) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
