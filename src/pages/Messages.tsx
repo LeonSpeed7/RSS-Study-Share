@@ -579,7 +579,7 @@ const Messages = () => {
                       }`}
                     >
                       <button
-                        onClick={() => navigate(`/user/${user.id}`)}
+                        onClick={() => navigate(`/profile/${user.id}`)}
                         className="w-full text-left"
                       >
                         <div className="flex items-center gap-3">
