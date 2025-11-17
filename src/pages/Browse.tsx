@@ -16,6 +16,7 @@ interface Note {
   class_name: string;
   subject: string;
   file_name: string;
+  file_url: string;
   note_type: string;
   rating_sum: number;
   rating_count: number;
@@ -158,7 +159,7 @@ const Browse = () => {
               <Card
                 key={note.id}
                 className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-1"
-                onClick={() => navigate(`/note/${note.id}`)}
+                onClick={() => window.open(note.file_url, '_blank')}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
