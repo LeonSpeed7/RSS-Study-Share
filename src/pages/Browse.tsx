@@ -46,8 +46,24 @@ const Browse = () => {
           schema: 'public',
           table: 'notes'
         },
-        () => {
-          fetchNotes();
+        async (payload) => {
+          // Fetch the new note with profile data immediately
+          const { data: newNote } = await supabase
+            .from("notes")
+            .select(`
+              *,
+              profiles (
+                username,
+                full_name
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newNote) {
+            // Add the new note to the top of the list
+            setNotes(prev => [newNote, ...prev]);
+          }
         }
       )
       .subscribe();
