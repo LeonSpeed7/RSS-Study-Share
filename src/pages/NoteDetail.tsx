@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Download, Calendar, User, Send, Star, MessageCircle } from "lucide-react";
+import { Download, Calendar, User, Send, Star, MessageCircle, ExternalLink, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
@@ -225,10 +225,17 @@ const NoteDetail = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (note?.file_url) {
-      window.open(note.file_url, "_blank");
-    }
+  const getFileExtension = (filename: string) => {
+    return filename.split('.').pop()?.toLowerCase() || '';
+  };
+
+  const isImageFile = (filename: string) => {
+    const ext = getFileExtension(filename);
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+  };
+
+  const isPdfFile = (filename: string) => {
+    return getFileExtension(filename) === 'pdf';
   };
 
   const startPrivateChat = () => {
@@ -338,10 +345,53 @@ const NoteDetail = () => {
                   </div>
                 </div>
               </div>
-              <Button onClick={handleDownload} className="w-full">
-                <Download className="w-4 h-4 mr-2" />
-                Download {note.file_name}
-              </Button>
+              <div className="space-y-4">
+                <div className="border rounded-lg overflow-hidden bg-muted/20">
+                  {isImageFile(note.file_name) ? (
+                    <div className="relative group">
+                      <img 
+                        src={note.file_url} 
+                        alt={note.title}
+                        className="w-full h-auto max-h-96 object-contain bg-background"
+                      />
+                      <a
+                        href={note.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                      >
+                        <div className="bg-primary text-primary-foreground rounded-full p-3">
+                          <ExternalLink className="w-5 h-5" />
+                        </div>
+                      </a>
+                    </div>
+                  ) : isPdfFile(note.file_name) ? (
+                    <div className="h-96 w-full">
+                      <iframe
+                        src={note.file_url}
+                        className="w-full h-full"
+                        title={note.title}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center">
+                      <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Preview not available for this file type
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <a
+                  href={note.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open "{note.title}" in new tab
+                </a>
+              </div>
             </CardContent>
           </Card>
         </div>
