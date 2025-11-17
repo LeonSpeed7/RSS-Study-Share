@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Search, Users, MessageCircle, Globe } from "lucide-react";
+import { Send, Search, Users, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
@@ -26,16 +25,6 @@ interface Message {
   read: boolean;
 }
 
-interface GlobalMessage {
-  id: string;
-  message: string;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    username: string;
-  };
-}
-
 const Messages = () => {
   const { toast } = useToast();
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -43,56 +32,13 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [globalMessages, setGlobalMessages] = useState<GlobalMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [newGlobalMessage, setNewGlobalMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUsername, setCurrentUsername] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
-  const [activeTab, setActiveTab] = useState("global");
-  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
-  const [mentionSearch, setMentionSearch] = useState("");
-  const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([]);
 
   useEffect(() => {
     getCurrentUser();
     fetchAllUsers();
-    fetchGlobalMessages();
-  }, []);
-
-  useEffect(() => {
-    // Subscribe to global chat messages
-    const channel = supabase
-      .channel('global-chat')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'global_chat_messages'
-        },
-        async (payload) => {
-          const { data: newMsg } = await supabase
-            .from("global_chat_messages")
-            .select(`
-              *,
-              profiles (
-                username
-              )
-            `)
-            .eq("id", payload.new.id)
-            .single();
-
-          if (newMsg) {
-            setGlobalMessages(prev => [...prev, newMsg]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   useEffect(() => {
@@ -137,17 +83,6 @@ const Messages = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setCurrentUserId(user.id);
-      
-      // Fetch current user's username
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single();
-      
-      if (profile) {
-        setCurrentUsername(profile.username);
-      }
     }
   };
 
@@ -155,9 +90,27 @@ const Messages = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // First get current user's school_id
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("school_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!currentProfile?.school_id) {
+      toast({
+        title: "School not found",
+        description: "You need to be part of a school to message other students.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Fetch only users from the same school
     const { data, error } = await supabase
       .from("profiles")
       .select("id, username, full_name, bio")
+      .eq("school_id", currentProfile.school_id)
       .neq("id", user.id)
       .order("username");
 
@@ -170,25 +123,6 @@ const Messages = () => {
     setFilteredUsers(data || []);
   };
 
-  const fetchGlobalMessages = async () => {
-    const { data, error } = await supabase
-      .from("global_chat_messages")
-      .select(`
-        *,
-        profiles (
-          username
-        )
-      `)
-      .order("created_at", { ascending: true })
-      .limit(100);
-
-    if (error) {
-      console.error("Error fetching global messages:", error);
-      return;
-    }
-
-    setGlobalMessages(data || []);
-  };
 
   const fetchMessages = async (partnerId: string) => {
     if (!currentUserId) return;
@@ -245,220 +179,18 @@ const Messages = () => {
     }
   };
 
-  const handleGlobalMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNewGlobalMessage(value);
-
-    // Check for @ mentions
-    const lastAtIndex = value.lastIndexOf('@');
-    if (lastAtIndex !== -1) {
-      const textAfterAt = value.slice(lastAtIndex + 1);
-      
-      // Only show dropdown if @ is at start or after a space
-      const charBeforeAt = lastAtIndex > 0 ? value[lastAtIndex - 1] : ' ';
-      if (charBeforeAt === ' ' || lastAtIndex === 0) {
-        // Check if there's a space after @, if so hide dropdown
-        if (!textAfterAt.includes(' ')) {
-          setMentionSearch(textAfterAt.toLowerCase());
-          const filtered = allUsers.filter(user =>
-            user.username.toLowerCase().startsWith(textAfterAt.toLowerCase())
-          ).slice(0, 5);
-          setMentionSuggestions(filtered);
-          setShowMentionDropdown(filtered.length > 0);
-        } else {
-          setShowMentionDropdown(false);
-        }
-      } else {
-        setShowMentionDropdown(false);
-      }
-    } else {
-      setShowMentionDropdown(false);
-    }
-  };
-
-  const insertMention = (username: string) => {
-    const lastAtIndex = newGlobalMessage.lastIndexOf('@');
-    const beforeMention = newGlobalMessage.slice(0, lastAtIndex);
-    const afterMention = newGlobalMessage.slice(lastAtIndex).split(' ').slice(1).join(' ');
-    
-    setNewGlobalMessage(`${beforeMention}@${username} ${afterMention}`);
-    setShowMentionDropdown(false);
-  };
-
-  const renderMessageWithMentions = (text: string) => {
-    const mentionRegex = /@(\w+)/g;
-    const parts = text.split(mentionRegex);
-    
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
-        // This is a username (captured group)
-        const isCurrentUser = part === currentUsername;
-        return (
-          <span
-            key={index}
-            className={`font-semibold ${
-              isCurrentUser ? 'text-primary' : 'text-blue-500 dark:text-blue-400'
-            }`}
-          >
-            @{part}
-          </span>
-        );
-      }
-      return part;
-    });
-  };
-
-  const handleSendGlobalMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newGlobalMessage.trim() || !currentUserId) return;
-
-    setIsSending(true);
-    try {
-      const { error } = await supabase.from("global_chat_messages").insert({
-        user_id: currentUserId,
-        message: newGlobalMessage.trim(),
-      });
-
-      if (error) throw error;
-
-      setNewGlobalMessage("");
-      setShowMentionDropdown(false);
-    } catch (error: any) {
-      toast({
-        title: "Failed to send message",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSending(false);
-    }
-  };
 
   const selectedUserData = allUsers.find(u => u.id === selectedUser);
 
   return (
     <Layout>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
-          <TabsTrigger value="global" className="flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            Global Chat
-          </TabsTrigger>
-          <TabsTrigger value="direct" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Direct Messages
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="global" className="mt-0">
-          <Card className="h-[calc(100vh-16rem)] flex flex-col">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-primary" />
-                <CardTitle>Global Chat</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col p-4">
-              <ScrollArea className="flex-1 pr-4 mb-4">
-                {globalMessages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <Globe className="w-12 h-12 text-muted-foreground/50 mb-3" />
-                    <p className="text-muted-foreground text-sm font-medium">No messages yet</p>
-                    <p className="text-muted-foreground/70 text-xs">Be the first to say hello!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {globalMessages.map((msg) => {
-                      const isCurrentUser = msg.user_id === currentUserId;
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
-                        >
-                          {!isCurrentUser && (
-                            <Avatar className="w-8 h-8 flex-shrink-0">
-                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                {msg.profiles?.username?.charAt(0).toUpperCase() || "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div className={`flex-1 max-w-[80%] ${isCurrentUser ? 'flex flex-col items-end' : ''}`}>
-                            <div className={`flex items-baseline gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                              <span className="text-xs font-medium text-foreground">
-                                {isCurrentUser ? 'You' : msg.profiles?.username}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(msg.created_at), "h:mm a")}
-                              </span>
-                            </div>
-                            <div
-                              className={`rounded-2xl px-4 py-2 ${
-                                isCurrentUser
-                                  ? 'bg-primary text-primary-foreground rounded-br-sm'
-                                  : 'bg-muted rounded-bl-sm'
-                              }`}
-                            >
-                              <p className="text-sm break-words">
-                                {renderMessageWithMentions(msg.message)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-              <div className="relative">
-                {showMentionDropdown && (
-                  <Card className="absolute bottom-full left-0 right-0 mb-2 max-h-48 overflow-auto">
-                    <CardContent className="p-2">
-                      {mentionSuggestions.map((user) => (
-                        <button
-                          key={user.id}
-                          onClick={() => insertMention(user.username)}
-                          className="w-full text-left px-3 py-2 rounded hover:bg-accent transition-colors flex items-center gap-2"
-                        >
-                          <Avatar className="w-6 h-6">
-                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                              {user.username.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="text-sm font-medium">{user.username}</p>
-                            {user.full_name && (
-                              <p className="text-xs text-muted-foreground">{user.full_name}</p>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
-                <form onSubmit={handleSendGlobalMessage} className="flex gap-2 pt-2 border-t">
-                  <Input
-                    placeholder="Type a message (use @ to mention users)..."
-                    value={newGlobalMessage}
-                    onChange={handleGlobalMessageChange}
-                    disabled={isSending || !currentUserId}
-                    className="flex-1"
-                  />
-                  <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={isSending || !newGlobalMessage.trim() || !currentUserId}
-                    className="flex-shrink-0"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="direct" className="mt-0">
-          <div className="grid gap-6 md:grid-cols-3 h-[calc(100vh-16rem)]">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">Messages</h1>
+          <p className="text-muted-foreground">Chat with students from your school</p>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-3 h-[calc(100vh-16rem)]">
         <Card className="md:col-span-1">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
@@ -609,9 +341,8 @@ const Messages = () => {
             )}
           </CardContent>
         </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </Layout>
   );
 };
