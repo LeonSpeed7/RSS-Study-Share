@@ -195,22 +195,33 @@ const Profile = () => {
                       />
                       <div className="space-y-2 mt-2">
                         <label className="text-sm font-medium">School</label>
-                        <Select
-                          value={editedProfile.school_id || ""}
-                          onValueChange={(value) => setEditedProfile({ ...editedProfile, school_id: value || null })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your school (optional)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">No school</SelectItem>
-                            {schools.map((school) => (
-                              <SelectItem key={school.id} value={school.id}>
-                                {school.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <Select
+                            value={editedProfile.school_id || undefined}
+                            onValueChange={(value) => setEditedProfile({ ...editedProfile, school_id: value })}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select your school (optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {schools.map((school) => (
+                                <SelectItem key={school.id} value={school.id}>
+                                  {school.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {editedProfile.school_id && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => setEditedProfile({ ...editedProfile, school_id: null })}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </>
                   ) : (
