@@ -35,6 +35,26 @@ const Browse = () => {
 
   useEffect(() => {
     fetchNotes();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('notes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notes'
+        },
+        () => {
+          fetchNotes();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchNotes = async () => {
