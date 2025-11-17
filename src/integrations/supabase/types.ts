@@ -53,8 +53,112 @@ export type Database = {
           },
         ]
       }
+      classes: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          name: string
+          school_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          name: string
+          school_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          school_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          school_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_ratings: {
+        Row: {
+          created_at: string | null
+          id: string
+          note_id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          note_id: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          note_id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_ratings_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
+          class_id: string | null
           class_name: string
           created_at: string
           description: string | null
@@ -62,12 +166,16 @@ export type Database = {
           file_size: number | null
           file_url: string
           id: string
+          note_type: Database["public"]["Enums"]["note_type"] | null
+          rating_count: number | null
+          rating_sum: number | null
           subject: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          class_id?: string | null
           class_name: string
           created_at?: string
           description?: string | null
@@ -75,12 +183,16 @@ export type Database = {
           file_size?: number | null
           file_url: string
           id?: string
+          note_type?: Database["public"]["Enums"]["note_type"] | null
+          rating_count?: number | null
+          rating_sum?: number | null
           subject: string
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          class_id?: string | null
           class_name?: string
           created_at?: string
           description?: string | null
@@ -88,6 +200,9 @@ export type Database = {
           file_size?: number | null
           file_url?: string
           id?: string
+          note_type?: Database["public"]["Enums"]["note_type"] | null
+          rating_count?: number | null
+          rating_sum?: number | null
           subject?: string
           title?: string
           updated_at?: string
@@ -95,8 +210,57 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "notes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "notes_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -110,6 +274,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          school_id: string | null
           updated_at: string
           username: string
         }
@@ -119,6 +284,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          school_id?: string | null
           updated_at?: string
           username: string
         }
@@ -128,8 +294,38 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          school_id?: string | null
           updated_at?: string
           username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -141,7 +337,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      note_type:
+        | "lecture"
+        | "lab"
+        | "assignment"
+        | "exam"
+        | "project"
+        | "study_guide"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -268,6 +471,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      note_type: [
+        "lecture",
+        "lab",
+        "assignment",
+        "exam",
+        "project",
+        "study_guide",
+        "other",
+      ],
+    },
   },
 } as const

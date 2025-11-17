@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Upload as UploadIcon } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -18,6 +19,7 @@ const Upload = () => {
   const [description, setDescription] = useState("");
   const [className, setClassName] = useState("");
   const [subject, setSubject] = useState("");
+  const [noteType, setNoteType] = useState<string>("other");
   const [file, setFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,10 +67,11 @@ const Upload = () => {
         description,
         class_name: className,
         subject,
+        note_type: noteType as any,
         file_url: publicUrl,
         file_name: file.name,
         file_size: file.size,
-      });
+      } as any);
 
       if (insertError) throw insertError;
 
@@ -144,6 +147,24 @@ const Upload = () => {
                     onChange={(e) => setSubject(e.target.value)}
                     required
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="noteType">Note Type *</Label>
+                  <Select value={noteType} onValueChange={setNoteType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select note type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lecture">Lecture Notes</SelectItem>
+                      <SelectItem value="lab">Lab Notes</SelectItem>
+                      <SelectItem value="assignment">Assignment</SelectItem>
+                      <SelectItem value="exam">Exam Material</SelectItem>
+                      <SelectItem value="project">Project</SelectItem>
+                      <SelectItem value="study_guide">Study Guide</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
