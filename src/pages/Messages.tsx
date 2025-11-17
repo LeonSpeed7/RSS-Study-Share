@@ -570,31 +570,44 @@ const Messages = () => {
               ) : (
                 <div className="space-y-2">
                   {filteredUsers.map((user) => (
-                    <button
+                    <div
                       key={user.id}
-                      onClick={() => setSelectedUser(user.id)}
-                      className={`w-full p-3 rounded-lg text-left transition-colors ${
+                      className={`p-3 rounded-lg transition-colors ${
                         selectedUser === user.id
                           ? "bg-accent"
                           : "hover:bg-accent/50"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {user.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{user.username}</p>
-                          {user.full_name && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {user.full_name}
-                            </p>
-                          )}
+                      <button
+                        onClick={() => navigate(`/user/${user.id}`)}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {user.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{user.username}</p>
+                            {user.full_name && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {user.full_name}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={() => setSelectedUser(user.id)}
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Message
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
