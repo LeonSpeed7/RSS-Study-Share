@@ -3,9 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { FileText, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { FileText, Calendar, Edit2, Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
 
 interface Profile {
@@ -24,9 +28,12 @@ interface Note {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState<Partial<Profile>>({});
 
   useEffect(() => {
     fetchProfile();
@@ -46,9 +53,47 @@ const Profile = () => {
 
       if (error) throw error;
       setProfile(data);
+      setEditedProfile(data);
     } catch (error) {
       console.error("Error fetching profile:", error);
     }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          username: editedProfile.username,
+          full_name: editedProfile.full_name,
+          bio: editedProfile.bio,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile(editedProfile as Profile);
+      setIsEditing(false);
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated",
+      });
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedProfile(profile || {});
+    setIsEditing(false);
   };
 
   const fetchUserNotes = async () => {
@@ -84,16 +129,62 @@ const Profile = () => {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <Avatar className="w-20 h-20">
-                <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-                  {profile?.username?.charAt(0).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <CardTitle className="text-3xl">{profile?.full_name || "Unknown"}</CardTitle>
-                <CardDescription className="text-lg">@{profile?.username || "unknown"}</CardDescription>
-                {profile?.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-20 h-20">
+                  <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                    {(isEditing ? editedProfile : profile)?.username?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-2 flex-1">
+                  {isEditing ? (
+                    <>
+                      <Input
+                        placeholder="Full Name"
+                        value={editedProfile.full_name || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile, full_name: e.target.value })}
+                        className="text-2xl font-bold h-auto py-1"
+                      />
+                      <Input
+                        placeholder="Username"
+                        value={editedProfile.username || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile, username: e.target.value })}
+                        className="text-lg"
+                      />
+                      <Textarea
+                        placeholder="Bio"
+                        value={editedProfile.bio || ""}
+                        onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
+                        className="mt-2"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <CardTitle className="text-3xl">{profile?.full_name || "Unknown"}</CardTitle>
+                      <CardDescription className="text-lg">@{profile?.username || "unknown"}</CardDescription>
+                      {profile?.bio && <p className="mt-2 text-sm text-foreground">{profile.bio}</p>}
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <>
+                    <Button onClick={handleSaveProfile} size="sm">
+                      <Save className="w-4 h-4 mr-1" />
+                      Save
+                    </Button>
+                    <Button onClick={handleCancelEdit} variant="outline" size="sm">
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
+                    <Edit2 className="w-4 h-4 mr-1" />
+                    Edit Profile
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,21 @@ const AIRecommendations = () => {
   const [className, setClassName] = useState("");
   const [recommendations, setRecommendations] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to use AI recommendations",
+          variant: "destructive",
+        });
+        navigate("/auth");
+      }
+    };
+    checkAuth();
+  }, [navigate, toast]);
 
   const handleGetRecommendations = async () => {
     if (!lesson.trim()) {

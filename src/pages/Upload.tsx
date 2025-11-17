@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,21 @@ const Upload = () => {
   const [subject, setSubject] = useState("");
   const [noteType, setNoteType] = useState<string>("other");
   const [file, setFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to upload notes",
+          variant: "destructive",
+        });
+        navigate("/auth");
+      }
+    };
+    checkAuth();
+  }, [navigate, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
