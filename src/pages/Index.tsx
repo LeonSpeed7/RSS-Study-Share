@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, BookOpen, Users, Upload } from "lucide-react";
+import { GraduationCap, BookOpen, Users, Upload, Sparkles } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -51,12 +51,19 @@ const Index = () => {
             </Button>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mt-20">
+          <div className="grid md:grid-cols-4 gap-8 mt-20">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
               <BookOpen className="w-12 h-12 mb-4 mx-auto" />
               <h3 className="text-xl font-semibold mb-2">Browse Notes</h3>
               <p className="text-white/80">
                 Access a vast library of student-shared notes across various subjects and classes
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
+              <Sparkles className="w-12 h-12 mb-4 mx-auto" />
+              <h3 className="text-xl font-semibold mb-2">AI Recommendations</h3>
+              <p className="text-white/80">
+                Get personalized note suggestions powered by advanced AI
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">

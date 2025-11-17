@@ -9,6 +9,7 @@ import Browse from "./pages/Browse";
 import Upload from "./pages/Upload";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
+import AIRecommendations from "./pages/AIRecommendations";
 import NoteDetail from "./pages/NoteDetail";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/upload" element={<Upload />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/ai-recommendations" element={<AIRecommendations />} />
           <Route path="/note/:id" element={<NoteDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

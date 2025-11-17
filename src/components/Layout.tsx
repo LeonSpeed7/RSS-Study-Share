@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { User } from "@supabase/supabase-js";
-import { BookOpen, Upload, User as UserIcon, GraduationCap, LogOut, MessageSquare } from "lucide-react";
+import { BookOpen, Upload, User as UserIcon, GraduationCap, LogOut, MessageSquare, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 interface LayoutProps {
@@ -61,6 +61,14 @@ const Layout = ({ children }: LayoutProps) => {
               >
                 <BookOpen className="w-4 h-4" />
                 Browse
+              </NavLink>
+              <NavLink
+                to="/ai-recommendations"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
+                activeClassName="bg-accent text-accent-foreground"
+              >
+                <Sparkles className="w-4 h-4" />
+                AI Picks
               </NavLink>
               <NavLink
                 to="/upload"
