@@ -366,7 +366,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      user_can_view_profile: {
+        Args: {
+          _profile_id: string
+          _profile_school_id: string
+          _viewer_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       note_type:
