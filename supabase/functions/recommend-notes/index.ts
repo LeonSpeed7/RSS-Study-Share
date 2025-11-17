@@ -32,13 +32,49 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all public notes with ratings
+    // Get authorization header to identify the user
+    const authHeader = req.headers.get("authorization");
+    let userSchoolId = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabase.auth.getUser(token);
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("school_id")
+          .eq("id", user.id)
+          .single();
+        
+        userSchoolId = profile?.school_id;
+      }
+    }
+
+    // Fetch all public notes with ratings and school info
     let query = supabase
       .from("notes")
-      .select("id, title, description, subject, class_name, rating_sum, rating_count, note_type, file_url")
+      .select(`
+        id, 
+        title, 
+        description, 
+        subject, 
+        class_name, 
+        rating_sum, 
+        rating_count, 
+        note_type, 
+        file_url,
+        user_id,
+        profiles!inner(school_id)
+      `)
       .eq("is_public", true)
       .order("rating_count", { ascending: false })
       .limit(50);
+
+    // Filter by school if user has a school
+    if (userSchoolId) {
+      query = query.eq("profiles.school_id", userSchoolId);
+    }
 
     if (subject) {
       query = query.eq("subject", subject);

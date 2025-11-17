@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Upload from "./pages/Upload";
 import Profile from "./pages/Profile";
+import UserProfile from "./pages/UserProfile";
 import Messages from "./pages/Messages";
 import AIRecommendations from "./pages/AIRecommendations";
 import NoteDetail from "./pages/NoteDetail";
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/" element={<Profile />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/upload" element={<Upload />} />
+          <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/ai-recommendations" element={<AIRecommendations />} />
           <Route path="/note/:id" element={<NoteDetail />} />

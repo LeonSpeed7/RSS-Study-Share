@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Search, Users, MessageCircle, Globe } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
 
@@ -38,6 +39,7 @@ interface GlobalMessage {
 }
 
 const Messages = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -413,7 +415,12 @@ const Messages = () => {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{user.username}</p>
+                            <p 
+                              className="text-sm font-medium truncate cursor-pointer hover:text-primary"
+                              onClick={() => navigate(`/profile/${user.id}`)}
+                            >
+                              {user.username}
+                            </p>
                             {user.full_name && (
                               <p className="text-xs text-muted-foreground truncate">
                                 {user.full_name}
