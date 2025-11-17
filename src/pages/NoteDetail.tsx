@@ -52,13 +52,58 @@ const NoteDetail = () => {
   const [userRating, setUserRating] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [messagesEndRef, setMessagesEndRef] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetchNote();
     fetchMessages();
     getCurrentUser();
     fetchUserRating();
+
+    // Subscribe to realtime chat messages
+    const channel = supabase
+      .channel(`chat-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `note_id=eq.${id}`
+        },
+        async (payload) => {
+          // Fetch the new message with profile data
+          const { data: newMsg } = await supabase
+            .from("chat_messages")
+            .select(`
+              *,
+              profiles (
+                username
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newMsg) {
+            setMessages(prev => [...prev, newMsg]);
+            scrollToBottom();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -124,12 +169,6 @@ const NoteDetail = () => {
       if (error) throw error;
 
       setNewMessage("");
-      fetchMessages();
-      
-      toast({
-        title: "Message sent",
-        description: "Your message has been posted",
-      });
     } catch (error: any) {
       toast({
         title: "Failed to send message",
@@ -309,45 +348,77 @@ const NoteDetail = () => {
 
         <div className="lg:col-span-1">
           <Card className="h-[600px] flex flex-col">
-            <CardHeader>
-              <CardTitle>Discussion</CardTitle>
-              <CardDescription>Chat with other students</CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-primary" />
+                <CardTitle>Discussion</CardTitle>
+              </div>
+              <CardDescription>Chat with other students about this note</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+            <CardContent className="flex-1 flex flex-col p-4">
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
                 {messages.length === 0 ? (
-                  <p className="text-center text-muted-foreground text-sm py-8">
-                    No messages yet. Start the conversation!
-                  </p>
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <MessageCircle className="w-12 h-12 text-muted-foreground/50 mb-3" />
+                    <p className="text-muted-foreground text-sm font-medium">No messages yet</p>
+                    <p className="text-muted-foreground/70 text-xs">Start the conversation!</p>
+                  </div>
                 ) : (
-                  messages.map((msg) => (
-                    <div key={msg.id} className="flex gap-2">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs">
-                          {msg.profiles?.username?.charAt(0).toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-sm font-medium">{msg.profiles?.username}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(msg.created_at), "h:mm a")}
-                          </span>
+                  <>
+                    {messages.map((msg) => {
+                      const isCurrentUser = msg.user_id === currentUserId;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+                        >
+                          {!isCurrentUser && (
+                            <Avatar className="w-8 h-8 flex-shrink-0">
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                {msg.profiles?.username?.charAt(0).toUpperCase() || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div className={`flex-1 max-w-[80%] ${isCurrentUser ? 'flex flex-col items-end' : ''}`}>
+                            <div className={`flex items-baseline gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                              <span className="text-xs font-medium text-foreground">
+                                {isCurrentUser ? 'You' : msg.profiles?.username}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(msg.created_at), "h:mm a")}
+                              </span>
+                            </div>
+                            <div
+                              className={`rounded-2xl px-4 py-2 ${
+                                isCurrentUser
+                                  ? 'bg-primary text-primary-foreground rounded-br-sm'
+                                  : 'bg-muted rounded-bl-sm'
+                              }`}
+                            >
+                              <p className="text-sm break-words">{msg.message}</p>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm">{msg.message}</p>
-                      </div>
-                    </div>
-                  ))
+                      );
+                    })}
+                    <div ref={setMessagesEndRef} />
+                  </>
                 )}
               </div>
-              <form onSubmit={handleSendMessage} className="flex gap-2">
+              <form onSubmit={handleSendMessage} className="flex gap-2 pt-2 border-t">
                 <Input
-                  placeholder="Type a message..."
+                  placeholder="Type your message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  disabled={isSending}
+                  disabled={isSending || !currentUserId}
+                  className="flex-1"
                 />
-                <Button type="submit" size="icon" disabled={isSending || !newMessage.trim()}>
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  disabled={isSending || !newMessage.trim() || !currentUserId}
+                  className="flex-shrink-0"
+                >
                   <Send className="w-4 h-4" />
                 </Button>
               </form>
