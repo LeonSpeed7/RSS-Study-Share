@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Calendar, Edit2, Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -17,16 +16,7 @@ interface Profile {
   username: string;
   full_name: string;
   bio: string;
-  school_id: string | null;
-  schools?: {
-    name: string;
-  };
-}
-
-interface School {
-  id: string;
-  name: string;
-  code: string;
+  school_name: string | null;
 }
 
 interface Note {
@@ -44,7 +34,6 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [schools, setSchools] = useState<School[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -53,7 +42,6 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile();
     fetchUserNotes();
-    fetchSchools();
   }, []);
 
   const fetchProfile = async () => {
@@ -63,12 +51,7 @@ const Profile = () => {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          schools (
-            name
-          )
-        `)
+        .select("*")
         .eq("id", user.id)
         .single();
 
@@ -77,20 +60,6 @@ const Profile = () => {
       setEditedProfile(data);
     } catch (error) {
       console.error("Error fetching profile:", error);
-    }
-  };
-
-  const fetchSchools = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("schools")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setSchools(data || []);
-    } catch (error) {
-      console.error("Error fetching schools:", error);
     }
   };
 
@@ -105,7 +74,7 @@ const Profile = () => {
           username: editedProfile.username,
           full_name: editedProfile.full_name,
           bio: editedProfile.bio,
-          school_id: editedProfile.school_id,
+          school_name: editedProfile.school_name,
         })
         .eq("id", user.id);
 
@@ -194,34 +163,12 @@ const Profile = () => {
                         className="mt-2"
                       />
                       <div className="space-y-2 mt-2">
-                        <label className="text-sm font-medium">School</label>
-                        <div className="flex gap-2">
-                          <Select
-                            value={editedProfile.school_id || undefined}
-                            onValueChange={(value) => setEditedProfile({ ...editedProfile, school_id: value })}
-                          >
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select your school (optional)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {schools.map((school) => (
-                                <SelectItem key={school.id} value={school.id}>
-                                  {school.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {editedProfile.school_id && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setEditedProfile({ ...editedProfile, school_id: null })}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
+                        <label className="text-sm font-medium">School (optional)</label>
+                        <Input
+                          placeholder="Enter your school name"
+                          value={editedProfile.school_name || ""}
+                          onChange={(e) => setEditedProfile({ ...editedProfile, school_name: e.target.value })}
+                        />
                       </div>
                     </>
                   ) : (
@@ -229,9 +176,9 @@ const Profile = () => {
                       <CardTitle className="text-3xl">{profile?.full_name || "Unknown"}</CardTitle>
                       <CardDescription className="text-lg">@{profile?.username || "unknown"}</CardDescription>
                       {profile?.bio && <p className="mt-2 text-sm text-foreground">{profile.bio}</p>}
-                      {profile?.schools && (
+                      {profile?.school_name && (
                         <Badge variant="outline" className="mt-2">
-                          {profile.schools.name}
+                          {profile.school_name}
                         </Badge>
                       )}
                     </>

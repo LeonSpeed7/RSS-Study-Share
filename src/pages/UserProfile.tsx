@@ -13,10 +13,7 @@ interface Profile {
   username: string;
   full_name: string;
   bio: string;
-  school_id: string | null;
-  schools?: {
-    name: string;
-  };
+  school_name: string | null;
 }
 
 interface Note {
@@ -64,12 +61,7 @@ const UserProfile = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          schools (
-            name
-          )
-        `)
+        .select("*")
         .eq("id", userId)
         .single();
 
@@ -135,10 +127,10 @@ const UserProfile = () => {
                 {profile.full_name && (
                   <CardDescription>{profile.full_name}</CardDescription>
                 )}
-                {profile.schools && (
+                {profile.school_name && (
                   <div className="flex items-center gap-2 mt-2">
                     <School className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{profile.schools.name}</span>
+                    <span className="text-sm text-muted-foreground">{profile.school_name}</span>
                   </div>
                 )}
               </div>

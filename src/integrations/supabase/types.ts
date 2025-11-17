@@ -307,6 +307,7 @@ export type Database = {
           full_name: string | null
           id: string
           school_id: string | null
+          school_name: string | null
           updated_at: string
           username: string
         }
@@ -317,6 +318,7 @@ export type Database = {
           full_name?: string | null
           id: string
           school_id?: string | null
+          school_name?: string | null
           updated_at?: string
           username: string
         }
@@ -327,6 +329,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           school_id?: string | null
+          school_name?: string | null
           updated_at?: string
           username?: string
         }

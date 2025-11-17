@@ -34,7 +34,8 @@ serve(async (req) => {
 
     // Get authorization header to identify the user
     const authHeader = req.headers.get("authorization");
-    let userSchoolId = null;
+    let userSchoolName = null;
+    let notes: any[] = [];
     
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
@@ -43,50 +44,113 @@ serve(async (req) => {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("school_id")
+          .select("school_name")
           .eq("id", user.id)
           .single();
         
-        userSchoolId = profile?.school_id;
+        userSchoolName = profile?.school_name;
       }
     }
 
-    // Fetch all public notes with ratings and school info
-    let query = supabase
-      .from("notes")
-      .select(`
-        id, 
-        title, 
-        description, 
-        subject, 
-        class_name, 
-        rating_sum, 
-        rating_count, 
-        note_type, 
-        file_url,
-        user_id,
-        profiles!inner(school_id)
-      `)
-      .eq("is_public", true)
-      .order("rating_count", { ascending: false })
-      .limit(50);
+    // Filter by school if user has a school - prioritize same school notes
+    if (userSchoolName) {
+      // First get notes from same school
+      let sameSchoolQuery = supabase
+        .from("notes")
+        .select(`
+          id, 
+          title, 
+          description, 
+          subject, 
+          class_name, 
+          rating_sum, 
+          rating_count, 
+          note_type, 
+          file_url,
+          user_id,
+          profiles!inner(school_name)
+        `)
+        .eq("is_public", true)
+        .eq("profiles.school_name", userSchoolName)
+        .order("rating_count", { ascending: false })
+        .limit(30);
 
-    // Filter by school if user has a school
-    if (userSchoolId) {
-      query = query.eq("profiles.school_id", userSchoolId);
-    }
+      if (subject) {
+        sameSchoolQuery = sameSchoolQuery.eq("subject", subject);
+      }
+      if (className) {
+        sameSchoolQuery = sameSchoolQuery.eq("class_name", className);
+      }
 
-    if (subject) {
-      query = query.eq("subject", subject);
-    }
-    if (className) {
-      query = query.eq("class_name", className);
-    }
+      const { data: sameSchoolNotes } = await sameSchoolQuery;
 
-    const { data: notes, error: notesError } = await query;
+      // Then get other notes to fill up to 50
+      let otherNotesQuery = supabase
+        .from("notes")
+        .select(`
+          id, 
+          title, 
+          description, 
+          subject, 
+          class_name, 
+          rating_sum, 
+          rating_count, 
+          note_type, 
+          file_url,
+          user_id,
+          profiles!inner(school_name)
+        `)
+        .eq("is_public", true)
+        .neq("profiles.school_name", userSchoolName)
+        .order("rating_count", { ascending: false })
+        .limit(20);
 
-    if (notesError) {
-      throw notesError;
+      if (subject) {
+        otherNotesQuery = otherNotesQuery.eq("subject", subject);
+      }
+      if (className) {
+        otherNotesQuery = otherNotesQuery.eq("class_name", className);
+      }
+
+      const { data: otherNotes } = await otherNotesQuery;
+
+      // Combine: same school first, then others
+      notes = [...(sameSchoolNotes || []), ...(otherNotes || [])];
+    } else {
+      // No school filter, get all notes
+      let query = supabase
+        .from("notes")
+        .select(`
+          id, 
+          title, 
+          description, 
+          subject, 
+          class_name, 
+          rating_sum, 
+          rating_count, 
+          note_type, 
+          file_url,
+          user_id,
+          profiles!inner(school_name)
+        `)
+        .eq("is_public", true)
+        .order("rating_count", { ascending: false })
+        .limit(50);
+
+      if (subject) {
+        query = query.eq("subject", subject);
+      }
+      if (className) {
+        query = query.eq("class_name", className);
+      }
+
+      const { data: allNotes, error: notesError } = await query;
+      
+      if (notesError) {
+        throw notesError;
+      }
+      
+      notes = allNotes || [];
     }
 
     if (!notes || notes.length === 0) {
