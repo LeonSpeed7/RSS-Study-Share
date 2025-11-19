@@ -26,7 +26,7 @@ One problem we ran into was allowing people on our website to contact and messag
 We are proud of our prompt engineering with Lovable, allowing us to incorporate multiple features into a usable platform. Removing the browse section and replacing it with an AI notes recommender solved major storage and accessibility issues, a breakthrough for our workflow. 
 
 ## What we learned
-This hackathon taught us the value of generating detailed ideas and collaborating as a team. Clear planning allowed us to create high-quality prompts for Lovable, maximizing the effectiveness of AI tools in development. 
+This hackathon taught us the value of generating detailed ideas and collaborating as a team. Clear planning allowed us to create high-quality prompts for Lovable, maximizing the effectiveness of AI tools in development. We learned how effectively we can utilize AI to convert our vision to a tangible product.
 
 ## What's next for StudyShare
 We envision StudyShare as an open-source notes platform like GitHub or NextDoor where all students can contribute to each other’s academic success and contact each other for resources and help. Future plans include a used textbook exchange, so peers can donate or sell books at a discounted price. Finally, we want to integrate tutoring and academic services, making our platform the central hub for student learning and connection.
