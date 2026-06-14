@@ -1,5 +1,5 @@
 # StudyShare
-rss-study-share.vercel.app
+Here is the project: [StudyShare](rss-study-share.vercel.app)
 ## Inspiration
 Every student has faced the night-before-test panic, staring at incomplete notes and wishing for access to organized explanations. We realized that schools have vast academic knowledge but no central, safe place to share notes, summaries, and study guides. Our idea stemmed from one question: What if technology and AI could create a collaborative studying community?
 
